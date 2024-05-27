@@ -4,6 +4,12 @@ from langchain.memory import ConversationBufferMemory
 
 import random
 
+from helpers.llm_helpers import LLMHelpers
+from helpers.music_helpers import MusicHelpers
+
+llmh__i = LLMHelpers()
+mh__i = MusicHelpers()
+
 conversation_memory = ConversationBufferMemory()
 
 # ----- PlayMate -----
@@ -73,10 +79,39 @@ if user_input_message := st.chat_input(key='general-user-input'):
     st.session_state.messages.append({'role': 'user', 'content': user_input_message})
     st.chat_message('user').write(user_input_message)
     
-    # app_reply = llmh__i.generate_basic_llm_response(user_input_message, conversation_memory)
-    app_reply = {
-        'text': 'yoyoyo'
-    }
+    user_is_asking_about = llmh__i.understand_user_input(user_input_message, conversation_memory)['text'].lower()
+    
+    if 'general question' in user_is_asking_about:
+        app_reply = llmh__i.generate_basic_llm_response(user_input_message, conversation_memory)
+    
+    else:
+        if 'a song by artist' in user_is_asking_about:
+            artist_name = user_is_asking_about.split("artist name:")[-1].strip().strip('"')
+            llm_reply = llmh__i.generate_basic_llm_response(user_input_message, conversation_memory)
+            music_rec = mh__i.get_track(artist_name)
+            music_rec_track = music_rec['name']
+            music_rec_url = music_rec['url']
+        else:
+            artist_name = 'cardi b'
+            llm_reply = llmh__i.generate_basic_llm_response(user_input_message, conversation_memory)
+            music_rec = mh__i.get_track(artist_name)
+            music_rec_track = music_rec['name']
+            music_rec_url = music_rec['url']
+        
+        spotify_links_msg = f"""
+        Here is a Spotify link with music by {artist_name}:
+        
+        {music_rec_track} {music_rec_url}
+        """
+        app_reply_text = f"""
+        {llm_reply['text']}
+        
+        {spotify_links_msg}
+        """
+        app_reply = {
+            'text': app_reply_text
+        }
+    
     st.session_state.messages.append({'role': 'assistant', 'content': app_reply['text']})
     st.chat_message('assistant').write(app_reply['text'])
     message = {'human': user_input_message, 'AI':app_reply['text']}
