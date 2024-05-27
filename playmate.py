@@ -6,9 +6,11 @@ import random
 
 from helpers.llm_helpers import LLMHelpers
 from helpers.music_helpers import MusicHelpers
+from helpers.context_helpers import ContextHelpers
 
 llmh__i = LLMHelpers()
 mh__i = MusicHelpers()
+ch__i = ContextHelpers()
 
 conversation_memory = ConversationBufferMemory()
 
@@ -79,34 +81,69 @@ if user_input_message := st.chat_input(key='general-user-input'):
     st.session_state.messages.append({'role': 'user', 'content': user_input_message})
     st.chat_message('user').write(user_input_message)
     
-    user_is_asking_about = llmh__i.understand_user_input(user_input_message, conversation_memory)['text'].lower()
+    user_is_asking_about = llmh__i.understand_user_input(user_input_message, conversation_memory)['text']
     
-    if 'general question' in user_is_asking_about:
+    if 'general question' in user_is_asking_about.lower():
         app_reply = llmh__i.generate_basic_llm_response(user_input_message, conversation_memory)
     
     else:
-        if 'a song by artist' in user_is_asking_about:
-            artist_name = user_is_asking_about.split("artist name:")[-1].strip().strip('"')
-            llm_reply = llmh__i.generate_basic_llm_response(user_input_message, conversation_memory)
-            music_rec = mh__i.get_track(artist_name)
-            music_rec_track = music_rec['name']
-            music_rec_url = music_rec['url']
-        else:
-            artist_name = 'cardi b'
-            llm_reply = llmh__i.generate_basic_llm_response(user_input_message, conversation_memory)
-            music_rec = mh__i.get_track(artist_name)
-            music_rec_track = music_rec['name']
-            music_rec_url = music_rec['url']
+        context_steer = ch__i.guide_app_request_using_user_intent(user_is_asking_about)
         
-        spotify_links_msg = f"""
-        Here is a Spotify link with music by {artist_name}:
+        print('################')
+        print(user_is_asking_about)
+        print(context_steer)
+        print('################')
+        
+        if context_steer == 'song by artist':
+            entity_name = ch__i.extract_entities(user_is_asking_about, context_steer)
+            music_rec = mh__i.get_artist_track(entity_name)
+            music_rec_track = music_rec['name']
+            music_rec_url = music_rec['url']
+            spotify_links_msg = f'Here is a Spotify link with music by {entity_name}'
+            
+        elif context_steer == 'song by genre':
+            entity_name = ch__i.extract_entities(user_is_asking_about, context_steer)
+            music_rec = mh__i.get_genre_track(entity_name)
+            music_rec_track = music_rec['name']
+            music_rec_url = music_rec['url']
+            spotify_links_msg = f'Here is a Spotify link with {entity_name} music'
+        
+        elif context_steer == 'playlist by artist':
+            entity_name = ch__i.extract_entities(user_is_asking_about, context_steer)
+            music_rec = mh__i.get_artist_playlist(entity_name)
+            music_rec_track = music_rec['name']
+            music_rec_url = music_rec['url']
+            spotify_links_msg = f'Here is a Spotify link with playlists by {entity_name}'
+        
+        elif context_steer == 'playlist by genre':
+            entity_name = ch__i.extract_entities(user_is_asking_about, context_steer)
+            music_rec = mh__i.get_genre_playlist(entity_name)
+            music_rec_track = music_rec['name']
+            music_rec_url = music_rec['url']
+            spotify_links_msg = f'Here is a Spotify playlist with {entity_name} music'
+        
+        else:
+            entity_name = 'cardi b'
+            music_rec = mh__i.get_artist_track(entity_name)
+            music_rec_track = music_rec['name']
+            music_rec_url = music_rec['url']
+            spotify_links_msg = f'Here is a Spotify playlist with {entity_name} music'
+        
+        print('################')
+        print(entity_name)
+        print('################')
+        
+        llm_reply = llmh__i.generate_basic_llm_response(user_input_message, conversation_memory)
+        
+        spotify_links_msg_with_recs = f"""
+        {spotify_links_msg}:
         
         {music_rec_track} {music_rec_url}
         """
         app_reply_text = f"""
         {llm_reply['text']}
         
-        {spotify_links_msg}
+        {spotify_links_msg_with_recs}
         """
         app_reply = {
             'text': app_reply_text

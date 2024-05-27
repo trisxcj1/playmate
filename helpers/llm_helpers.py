@@ -38,6 +38,8 @@ class LLMHelpers:
         - If the user is asking for a specific song:
             - Ressponse: "This user is asking for the song name: <song_name>"
             
+        - If the user is asking for a song in a specific genre:
+            - Ressponse: "This user is asking for a song in the genre name: <genre_name>"
             
         - If the user is asking for a playlist in general:
             - Response: "This user is asking for a playlist"
@@ -48,6 +50,9 @@ class LLMHelpers:
         - If the user is asking for a playlist with songs from multiple artists:
             - Response: "This user is asking for a playlist with songs from the following arist names: <list_of_artist_names>"
         
+        - If the user is asking for a playlist in a specific genre:
+            - Ressponse: "This user is asking for a playlist in the genre name: <genre_name>"
+            
         - If you cannot identify exactly what the user is asking:
             - Response: "general question"
         
@@ -85,7 +90,7 @@ class LLMHelpers:
     
     def __init__(self):
         """
-        class [ LLMHelper ]
+        class [ LLMHelpers ]
 
         Provides:
         - Methods to easily interact with LLM models for this application.
